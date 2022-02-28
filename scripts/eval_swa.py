@@ -69,9 +69,9 @@ if __name__ == '__main__':
     # load pre-trained weights
     ckpt = checkpoints.restore_checkpoint(args.weight_file, target=None)
     var_dict = {
-        'params': ckpt['params'],
+        'params': ckpt['swa_mean_params'],
         'image_stats': ckpt['image_stats'],
-        'batch_stats': ckpt['batch_stats'],
+        'batch_stats': ckpt['swa_batch_stats'],
     }
 
     # make predictions
