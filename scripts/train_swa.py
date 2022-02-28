@@ -83,6 +83,18 @@ def step_trn(state, batch, num_classes, scheduler):
     return new_state, metrics
 
 
+def update_swa_params(state):
+    return state.replace(
+        swa_num_samples = state.swa_num_samples + 1,
+        swa_mean_params = jax.tree_util.tree_multimap(
+            lambda e1, e2: (
+                e1 * state.swa_num_samples + e2
+            ) / (state.swa_num_samples + 1),
+            state.swa_mean_params, state.params,
+        ),
+    )
+
+
 def update_swa_batch_stats(state, batch):
     _, new_model_state = state.apply_fn(
         {
@@ -275,6 +287,7 @@ if __name__ == '__main__':
     # train model
     step_trn = jax.pmap(functools.partial(step_trn, num_classes=num_classes, scheduler=scheduler), axis_name='batch')
     step_val = jax.pmap(functools.partial(step_val, num_classes=num_classes                     ), axis_name='batch')
+    update_swa_params = jax.pmap(update_swa_params, axis_name='batch')
     update_swa_batch_stats = jax.pmap(update_swa_batch_stats, axis_name='batch')
     sync_batch_stats = jax.pmap(lambda x: jax.lax.pmean(x, 'x'), 'x')
 
@@ -314,15 +327,7 @@ if __name__ == '__main__':
         if epoch_idx > args.swa_num_pt_epochs:
 
             # update swa_num_samples and swa_mean_params
-            state = state.replace(
-                swa_num_samples = state.swa_num_samples + 1,
-                swa_mean_params = jax.tree_util.tree_multimap(
-                    lambda e1, e2: (
-                        e1 * state.swa_num_samples + e2
-                    ) / (state.swa_num_samples + 1),
-                    state.swa_mean_params, state.params,
-                ),
-            )
+            state = update_swa_params(state)
 
             # update swa_batch_stats
             if state.batch_stats:
