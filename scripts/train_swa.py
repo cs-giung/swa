@@ -251,7 +251,7 @@ if __name__ == '__main__':
             ),
             optax.cosine_decay_schedule(
                 init_value       = args.learning_rate,
-                decay_steps      = (args.num_epochs - args.num_warmup_epochs) * trn_steps_per_epoch,
+                decay_steps      = (args.swa_num_pt_epochs - args.num_warmup_epochs) * trn_steps_per_epoch,
                 alpha            = args.swa_learning_rate / args.learning_rate,
             ),
             optax.constant_schedule(
